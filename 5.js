@@ -43,14 +43,18 @@
     constructor: Promise,
 
     then: function(onfulfilled, onrejected) {
-      // 根据状态不同，执行不同的方法
+      // 根据状态不同，执行不同的方法，执行then时候，resolve是同步，知道状态，不是立即执行，而是异步操作（定时器，不设置等待时间）
       var self = this;
       switch(self.PromiseState) {
         case "fulfilled":
-          onfulfilled(self.PromiseResult);
+          setTimeout(function() {
+            onfulfilled(self.PromiseResult);
+          })
           break;
         case "rejected":
-          onrejected(self.PromiseResult);
+          setTimeout(function() {
+            onrejected(self.PromiseResult);
+          })
           break
       }
     },
@@ -73,4 +77,4 @@ p1.then(value => {
 }, reason => {
   console.log('失败', reason)
 });
-console.log(1)  // 此种执行 then是同步的
+console.log(1)  // 异步then 先输出1
