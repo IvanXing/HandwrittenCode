@@ -16,13 +16,13 @@
 
     // 3. 参数是函数，执行resolve/reject就是修改当前实例的状态和结果
     var resolve = function resolve(value) {
-      if(self.PromiseState === 'pendding') {  // 状态只能改一次，只能从pending改到
+      if(self.PromiseState === 'pending') {  // 状态只能改一次，只能从pending改到
         self.PromiseState = 'fulfilled';   // 此处不用this，外部调用resolve，this是window，此处应该改变实例状态，箭头函数可以用this，继承上下文 
         self.PromiseResult = value;
       }
     };
     var reject = function reject(reason) {
-      if(self.PromiseState === 'pendding') {
+      if(self.PromiseState === 'pending') {
         self.PromiseState = 'rejected';
         self.PromiseResult = reason;
       }
@@ -37,10 +37,40 @@
 
   }
 
-  // window.Promise = Promise;
+  // 5. 重写原型，以及then方法
+  Promise.prototype = {
+    customize: true,  // 标记是否自定义
+    constructor: Promise,
+
+    then: function(onfulfilled, onrejected) {
+      // 根据状态不同，执行不同的方法
+      var self = this;
+      switch(self.PromiseState) {
+        case "fulfilled":
+          onfulfilled(self.PromiseResult);
+          break;
+        case "rejected":
+          onrejected(self.PromiseResult);
+          break
+      }
+    },
+
+    catch: function() {},
+  }
+
+  window.Promise = Promise;
 })();
 
 
 let p1 = new Promise((resolve, reject) => {
-
+  resolve('OK')
+  reject('NO')
 });
+
+
+p1.then(value => {
+  console.log('成功', value)
+}, reason => {
+  console.log('失败', reason)
+});
+console.log(1)  // 此种执行 then是同步的
