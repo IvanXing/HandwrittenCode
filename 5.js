@@ -17,32 +17,29 @@
     self.onFulfilledCallbacks = [];
     self.onRejectedCallbacks = [];
 
+    // 6. 封装 resolve和reject方法
+    var run = function run(state, result) {
+      if(self.PromiseState !== 'pending') return
+      self.PromiseState = state;
+      self.PromiseResult = result;
+      // 7. 执行resolve/reject时，会立即更改状态信息，但是不会立即通知方法执行（有异步效果）
+      setTimeout(()=> {
+        var arr = state === 'fulfilled' ? self.onFulfilledCallbacks : self.onRejectedCallbacks;
+        for(var i = 0; i < arr.length; i++) {
+          let itemFunc = arr[i];
+          if(typeof itemFunc === 'function') {
+            itemFunc(self.PromiseResult);
+          }
+        }
+      })
+    }
+
     // 3. 参数是函数，执行resolve/reject就是修改当前实例的状态和结果
     var resolve = function resolve(value) {
-      if(self.PromiseState === 'pending') {  // 状态只能改一次，只能从pending改到
-        self.PromiseState = 'fulfilled';   // 此处不用this，外部调用resolve，this是window，此处应该改变实例状态，箭头函数可以用this，继承上下文 
-        self.PromiseResult = value;
-        // 5.5 修改状态后，通知then存储的方法执行
-        for(var i = 0; i < self.onFulfilledCallbacks.length; i++) {
-          let itemFunc = self.onFulfilledCallbacks[i];
-          if(typeof itemFunc === 'function') {
-            itemFunc(self.PromiseResult);
-          }
-        }
-      }
+      run('fulfilled', value)
     };
     var reject = function reject(reason) {
-      if(self.PromiseState === 'pending') {
-        self.PromiseState = 'rejected';
-        self.PromiseResult = reason;
-        // 5.5 修改状态后，通知then存储的方法执行
-        for(var i = 0; i < self.onRejectedCallbacks.length; i++) {
-          let itemFunc = self.onRejectedCallbacks[i];
-          if(typeof itemFunc === 'function') {
-            itemFunc(self.PromiseResult);
-          }
-        }
-      }
+      run('rejected', reason)
     };
 
     // 2. 立即执行executor函数
@@ -91,6 +88,7 @@
 let p1 = new Promise((resolve, reject) => {
   setTimeout(()=> {
     resolve('OK')
+    console.log(2)  // 7. resolve是异步，应该先输出2
   }, 1000)
 });
 
