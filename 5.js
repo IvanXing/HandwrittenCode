@@ -13,18 +13,35 @@
     var self = this;
     self.PromiseState = 'pending';
     self.PromiseResult = undefined;
+    // 5.3 加两个属性，存储then方法，还未知道状态先存起来
+    self.onFulfilledCallbacks = [];
+    self.onRejectedCallbacks = [];
 
     // 3. 参数是函数，执行resolve/reject就是修改当前实例的状态和结果
     var resolve = function resolve(value) {
       if(self.PromiseState === 'pending') {  // 状态只能改一次，只能从pending改到
         self.PromiseState = 'fulfilled';   // 此处不用this，外部调用resolve，this是window，此处应该改变实例状态，箭头函数可以用this，继承上下文 
         self.PromiseResult = value;
+        // 5.5 修改状态后，通知then存储的方法执行
+        for(var i = 0; i < self.onFulfilledCallbacks.length; i++) {
+          let itemFunc = self.onFulfilledCallbacks[i];
+          if(typeof itemFunc === 'function') {
+            itemFunc(self.PromiseResult);
+          }
+        }
       }
     };
     var reject = function reject(reason) {
       if(self.PromiseState === 'pending') {
         self.PromiseState = 'rejected';
         self.PromiseResult = reason;
+        // 5.5 修改状态后，通知then存储的方法执行
+        for(var i = 0; i < self.onRejectedCallbacks.length; i++) {
+          let itemFunc = self.onRejectedCallbacks[i];
+          if(typeof itemFunc === 'function') {
+            itemFunc(self.PromiseResult);
+          }
+        }
       }
     };
 
@@ -43,7 +60,9 @@
     constructor: Promise,
 
     then: function(onfulfilled, onrejected) {
-      // 根据状态不同，执行不同的方法，执行then时候，resolve是同步，知道状态，不是立即执行，而是异步操作（定时器，不设置等待时间）
+      // 5.1 根据状态不同，执行不同的方法，执行then时候，resolve是同步，知道状态，不是立即执行，而是异步操作（定时器，不设置等待时间）
+      // 5.2 如果执行then时，还不清楚实例状态(executor中是一个异步操作，先then，后改状态)，此时应该先把基于then传入的方法存起来
+      // 5.4 后期resolve/reject函数更改状态时候，通知存储的then方法执行
       var self = this;
       switch(self.PromiseState) {
         case "fulfilled":
@@ -55,7 +74,10 @@
           setTimeout(function() {
             onrejected(self.PromiseResult);
           })
-          break
+          break;
+        default:
+          self.onFulfilledCallbacks.push(onfulfilled);
+          self.onRejectedCallbacks.push(onrejected);
       }
     },
 
@@ -67,10 +89,23 @@
 
 
 let p1 = new Promise((resolve, reject) => {
-  resolve('OK')
-  reject('NO')
+  setTimeout(()=> {
+    resolve('OK')
+  }, 1000)
 });
 
+
+p1.then(value => {
+  console.log('成功', value)
+}, reason => {
+  console.log('失败', reason)
+});
+
+p1.then(value => {
+  console.log('成功', value)
+}, reason => {
+  console.log('失败', reason)
+});
 
 p1.then(value => {
   console.log('成功', value)
