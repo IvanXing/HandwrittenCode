@@ -51,6 +51,30 @@
 
   }
 
+  // 9. 执行不报错，统一处理方法，当前promise实例，执行结果x
+  // 9.1 统一处理基于then返回新实例的成功和失败
+  function reslovePromise(promise, x, resolve, reject) {
+    if (x===promise) {
+      throw new TypeError('循环了兄弟，返回值和创建的新实例是同一个')
+    }
+    // 9.2 判断x是否符合要求
+    if ((x !== null && typeof x === 'object') || typeof x === 'function') {
+      try {
+        var then = x.then;
+        if (typeof then === 'function') {
+          // 9.3 返回结果是一个新的promise实例（不一定是自己构建的，也有可能是别人构建的）
+          then.call(x, function(y) {}, function(x) {})
+        } else {
+          reslove(x)
+        }
+      } catch(err) {
+        reject(err);
+      }
+    } else {
+      reslove(x)
+    }
+  }
+
   // 5. 重写原型，以及then方法
   Promise.prototype = {
     customize: true,  // 标记是否自定义
@@ -70,6 +94,8 @@
             setTimeout(function() {
               try {
                 var x = onfulfilled(self.PromiseResult);
+                // 9.
+                reslovePromise(promise, x, reslove, reject)
               } catch(err) {
                 reject(err);
               }
@@ -79,6 +105,8 @@
             setTimeout(function() {
               try {
                 var x = onrejected(self.PromiseResult);
+                // 9.
+                reslovePromise(promise, x, reslove, reject)
               } catch(err) {
                 reject(err);
               }
@@ -95,6 +123,8 @@
             self.onFulfilledCallbacks.push(function(PromiseResult) {
               try {
                 var x = onfulfilled(PromiseResult);
+                // 9.
+                reslovePromise(promise, x, reslove, reject)
               } catch(err) {
                 reject(err);
               }
@@ -102,6 +132,8 @@
             self.onRejectedCallbacks.push(function(PromiseResult) {
               try {
               var x = onrejected(PromiseResult);
+              // 9.
+              reslovePromise(promise, x, reslove, reject)
               } catch(err) {
                 reject(err);
               }
