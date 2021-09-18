@@ -60,22 +60,55 @@
       // 5.1 根据状态不同，执行不同的方法，执行then时候，resolve是同步，知道状态，不是立即执行，而是异步操作（定时器，不设置等待时间）
       // 5.2 如果执行then时，还不清楚实例状态(executor中是一个异步操作，先then，后改状态)，此时应该先把基于then传入的方法存起来
       // 5.4 后期resolve/reject函数更改状态时候，通知存储的then方法执行
+
+      // 8. then方法会返回一个新的Promise实例， self是原始的promise实例， promise是新返回的promise实例【reslove, reject执行控制成功失败】
+      // 8.1 新返回promise执行成功还是失败，由onfulfilled和onrejected是否报错，以及新promise返回结果决定
       var self = this;
-      switch(self.PromiseState) {
-        case "fulfilled":
-          setTimeout(function() {
-            onfulfilled(self.PromiseResult);
-          })
-          break;
-        case "rejected":
-          setTimeout(function() {
-            onrejected(self.PromiseResult);
-          })
-          break;
-        default:
-          self.onFulfilledCallbacks.push(onfulfilled);
-          self.onRejectedCallbacks.push(onrejected);
-      }
+      var promise = new Promise(function(reslove, reject) {
+        switch(self.PromiseState) {
+          case "fulfilled":
+            setTimeout(function() {
+              try {
+                var x = onfulfilled(self.PromiseResult);
+              } catch(err) {
+                reject(err);
+              }
+            })
+            break;
+          case "rejected":
+            setTimeout(function() {
+              try {
+                var x = onrejected(self.PromiseResult);
+              } catch(err) {
+                reject(err);
+              }
+            })
+            break;
+          default:
+            // 8.2 这样写的目的：把成功和失败放到不同容器中，后期知道状态，通知某类型容器方法执行
+            // self.onFulfilledCallbacks.push(onfulfilled);
+            // self.onRejectedCallbacks.push(onrejected);
+ 
+            // 8.3 存成数组匿名函数，好处是可以接收返回值
+            // 向容器中存储匿名函数，后期状态改变后，先把匿名函数执行（给匿名函数传递promiseResult）
+            // 在匿名函数中，把最后需要执行的onfulfilled 和onrejected执行，可以监听报错和返回值
+            self.onFulfilledCallbacks.push(function(PromiseResult) {
+              try {
+                var x = onfulfilled(PromiseResult);
+              } catch(err) {
+                reject(err);
+              }
+            });
+            self.onRejectedCallbacks.push(function(PromiseResult) {
+              try {
+              var x = onrejected(PromiseResult);
+              } catch(err) {
+                reject(err);
+              }
+            });
+        }
+      });
+      return promise;
     },
 
     catch: function() {},
