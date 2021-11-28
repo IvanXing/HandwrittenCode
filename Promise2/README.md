@@ -1,0 +1,15 @@
+- yarn init -y
+- yarn global add ts-node mocha
+  - which ts-node / which mocha 查看安装目录
+- yarn add --dev chai mocha
+- yarn add --dev @types/chai @types/mocha
+- 用mocha来执行chai文件，但是mocha不支持ts，用ts-node，
+  - macha 提供 describe和it
+  - chai提供 assert
+  - mocha -r ts-node/register test/index.ts 运行测试
+  - 添加命令到script
+  - yarn默认直接找本地，需要在本地安转 ts-node 和 typescript
+  - yarn add --dev ts-node
+  - yarn add --dev typescript
+
+  - // @ts-ignore 来忽略ts坚持
